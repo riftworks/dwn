@@ -57,7 +57,7 @@ however the existence of a federated DNS record to store without altering the
 common name's DWN reference. The `dns` part of a common name refers to the DNS
 service to use:
 - `rift` is not a valid DNS service and never will be!
-- A DNS address syntax has to be either <domain_name> or <domain_name>:<ext>.
+- A DNS address syntax has to be either <domain_name> or <domain_name>:<tld>.
     If the domain name is under the `.com` TLD, DWNs will automatically look
     for them.
 - CommonRift Web5's DNS holds a DHT of every DWN that connected to them and

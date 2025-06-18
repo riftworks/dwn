@@ -45,7 +45,7 @@ the user and handle requests from other DWNs to retrieve them.
 
 > [!IMPORTANT]
 > It is highly recommended to have an understanding of the DID protocol before
-> continuing. [Decentralized IDentifiers Protocol's README](https://github.com/riftworks/proto-did/README.md)
+> continuing: [Decentralized IDentifiers Protocol's README](https://github.com/riftworks/proto-did/blob/main/README.md)
 
 Under the system, two distinct spaces must be distinguished:
 - The `did://` space, for DWNs with zk cryptographic verifications, ARs, ...

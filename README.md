@@ -41,88 +41,15 @@ the user and handle requests from other DWNs to retrieve them.
 > In the case the user is connected, it receives a request to grant access or
 > not to this service.
 
-## The `did://` protocol
+## Networking
 
-Communicating beween DWNs is done by the `did://` protocol, which tries to find
-the address of a DWN by its DID. This protocol works over HTTP.
+> [!IMPORTANT]
+> It is highly recommended to have an understanding of the DID protocol before
+> continuing. [Decentralized IDentifiers Protocol's README](https://github.com/riftworks/proto-did/README.md)
 
 Under the system, two distinct spaces must be distinguished:
-- The `did://` space, for DWNs with zk cryptographic verifications, DHTs, ...
+- The `did://` space, for DWNs with zk cryptographic verifications, ARs, ...
 - The `http://` space, for links between DWNs and devices
-
-`did://` URLs are formatted as `did://<address>/` or `did://<dns>:<common_name>/`
-. This difference allows for some DWNs to be targeted using common names (such
-as `did://rift:google`) without any issues. The common name method implies 
-however the existence of a federated DNS record to store without altering the
-common name's DWN reference. The `dns` part of a common name refers to the DNS
-service to use:
-- `rift` is not a valid DNS service and never will be!
-- A DNS address syntax has to be either <domain_name> or <domain_name>:<tld>.
-    If the domain name is under the `.com` TLD, DWNs will automatically look
-    for them.
-- CommonRift Web5's DNS holds a DHT of every DWN that connected to them and
-    regularly tries to contact them to keep the DHT up-to-date.
-- CommonRift Web5's DNS is explained in depth on its repo (`@riftworks/did-dns`)
-
-> `did://somedns:io:github` is a valid DNS DID address
-> `did://github` is not a valid DNS DID address
-
-
-### Valid DNS addresses (16/06/2025)
-
-| DID DNS Name      | HTTP Address          | Owner                           |
-| ----------------- | -----------------     | ------------------------------- |
-| commonrift        | commonrift.com        | Org owner                       |
-| johanmontorfano   | johanmontorfano.com   | Org owner                       |
-
-Three kinds of requests exists on the DID protocol:
-- `WHERE` with `did://<address>?` for DWN lookup
-- `WHERE` with `did://<address>!` for DWN with storage lookup
-- `DATA` with `did://<address>` for DWN data exchange
-
-### Discovery with `did://`
-
-The default behavior of every DWN under the `did://` space is to gather a list
-of neighbors as quickly as possible to rotate with available neighbors as often
-as possible.
-
-When a DWN want to target a specific DWN which is not its neighbor, it will
-ask each of its neighbor a `WHERE` request formatted as `did://<address>?` with
-a JSON body:
-
-```json
-{
-    "request_id": "uuid",
-    "requested_by": "DWN_REQUESTER",
-    "requested_by_ip": "DWN_REQUESTER_IP",
-    "depth": "SIZE_OF_THE_NEIGHBOR_TREE_SINCE_REQUEST"
-}
-```
-
-Each neighbor will replicate this request to their neighbors until one neighbor
-returns the IP address of the looked-up DWN. The query is aborted under those
-conditions:
-- `"depth" > 50`
-- No more nodes that did not answer the request can be reached.
-
-The duplication of `WHERE` requests is a great way for DWNs to register new
-neighbors.
-
-The response to a `WHERE` request is formatted as:
-
-```json
-{
-    "request_id": "uuid",
-    "from_dwn": "DWN_REQUESTER",
-    "from_dwn_ip": "DWN_REQUESTER_IP",
-    "requested_address_found": "bool",
-    "requested_address": "<address>",
-    "requested_address_ip": "<address>_IP"
-}
-```
-
-> Therefore, connecting to a DNS-namespaced DID DWN is a great way to gather a 
-> vast amount of neighbors fast.
 
 ### DWN with multiple identities with the `did://` protocol
 
@@ -213,55 +140,9 @@ actively the activity of the DWNs where data is saved, they keep statistical
 records of availability, speed and cost that can be queried with a 
 `WHERE` request formatted as `did://<address>!`.
 
-This request works the same as `WHERE?` requests, except they have a maximum
-depth of `30`.
-
-The content of a `WHERE!` request is the same as a `WHERE?`, but the response
-is different:
-
-```json
-{
-    "request_id": "uuid",
-    "from_dwn": "DWN_REQUESTER",
-    "from_dwn_ip": "DWN_REQUESTER_IP",
-    "requested_address_found": "bool",
-    "requested_address": "<address>",
-    "requested_address_ip": "<address>_IP",
-    "available_storage": "12Go",
-    "availability": "%%%",
-    "avg_network_speed": "24Mo/s",
-    "avg_price": "0.000000007btc/Go",
-    "current_price": "0.000000006btc/Go",
-    "replicated_on": [
-        "DID1", "DID2", "DID3"
-    ],
-    "replicated_for": [
-        "DID4", "DID5", "DID6"
-    ],
-    "storage_type": "main | replicated",
-    "location": "en-gb",
-    "bln_address": "0x000000
-}
-```
-
 Every DWN storage provider share some references of DWNs it stored data for
 and DWNs are free, upon certain statistics, to make a decision based on those
 DWNs feedback on storing with them.
-
-#### Fresh DWN storage providers
-
-Fresh DWN storage providers have empty ratings by default. In order to gain
-ratings, it must serve first as a replicated storage provider to get better
-ratings and eventually a trusted source of storage.
-
-### DWN storage providers replication
-
-Each DWN storage provider is replicated to at least 2 other machines to ensure
-DWN storage requesters have backups in cease this DWN gets offline or hacked.
-
-It is up to the DWN storage provider to decide how much replication machines it
-is meant to be connected to. The higher the number of replication machines, the
-higher the cost of storage.
 
 ## Built-in privacy
 
@@ -358,7 +239,7 @@ device and remove access from every other device.
 
 - `--multi-identities=N` will enable the DWN to manage at most `N` identities.
 - `--storage-provider` will enable the DWN to be a storage provider for others.
-- `--full-dht-record` will make the local DHT size infinite (intended for fat
+- `--full-ar-record` will make the local AR size infinite (intended for fat
     nodes)
 - `--config=<path>` will load the configuration at the given path.
 
@@ -378,8 +259,8 @@ bln_address = 0x0000
 max_buffering_size = 20Go
 directory = /mnt/dwn/buffering
 
-[dht]
-max_dht_size = 100Mo        # Optional if `unlimited_dht_size` is set
+[ar]
+max_size = 100Mo        # Optional if `unlimited_ar_size` is set
 unlimited_dht_size = false
 
 [identities]

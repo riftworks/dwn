@@ -83,6 +83,29 @@ they generated.
 > - The app's DWN notifies the user's DWN of a change.
 > - The DWN stores this change.
 
+Here is what a DWN internal storage representation would be:
+
+```
+DWN
+├── [storage mode]
+│   └── [namespace]
+│       └── [database name]
+├── Permissions
+│   └── @twouiteur
+│       ├── OWN: kv.@twouiteur, raw.@twouiteur
+│       └── READ: raw.@gallery_app.pictures
+├── KV Storage
+│   └── @twouiteur
+│       ├── posts_metadata
+│       └── users
+└── Raw Storage
+    ├── @twouiteur
+    │   └── posts
+    └── @gallery_app
+        ├── pictures
+        └── videos
+```
+
 ### Temperature storage
 
 Tthis section addresses a concrete limitation: While storage capacity is finite,
@@ -94,7 +117,8 @@ Therefore, we need a way of handling storage by temperature:
 - **Warm tier**: Data and files are offloaded from the DWN to a federated DWN
     storage network. DWNs offers storage for any capacity at a specific price
     and based on regions, all rated based on availability and consistency. The
-    data is stored cryptographically by the user's DWN.
+    data is stored cryptographically by the user's DWN. **This tier is managed
+    by the did:// protocol.**
 - **Cold tier**: Data is offloaded to the IPFS and hashes to those data is kept
     by the user's DWN. It allows for smaller storage costs, storing extra-large
     files, and offloading the DWN network with unecessary content.
@@ -131,18 +155,6 @@ maximum availability of data.
 *However, such a system would allow in the future to implement other services
 based on this payment method. And BLN may be ditched out for a Web5 native
 payment method later.*
-
-### Rating DWNs for storage
-
-Ensuring the viability of DWN storage nodes is important for each DWN in order
-to keep at most all data safe. Since every DWN that uses tier storage tracks
-actively the activity of the DWNs where data is saved, they keep statistical
-records of availability, speed and cost that can be queried with a 
-`WHERE` request formatted as `did://<address>!`.
-
-Every DWN storage provider share some references of DWNs it stored data for
-and DWNs are free, upon certain statistics, to make a decision based on those
-DWNs feedback on storing with them.
 
 ## Built-in privacy
 
@@ -234,6 +246,87 @@ for the first time to its DWN, the DWN will generate a 4kb symmetric key
 and give the user with the DID encrypted with this key. If the user submits by
 any means (without a linked device) the encrypted DID, the DWN will link this
 device and remove access from every other device.
+
+## The Local App Model
+
+One of the major issues of implementing such a system is the current app model.
+Under this model, the network could quickly see emerge superclusters that 
+consists of services often accessed by DWNs. Those centralized apps causes
+issues regarding network speed and integrity since they cannot access data 
+directly from DWNs (as described in the DID protocol), they serve as a relay
+for users to interact with app with, will undergo a massive traffic that will
+cost a lot.
+
+To overcome those issues, we must think of a new app model. This model is
+local-first. Instead of having a centralized service, each DWN that need to
+access a specific app will download a copy of it locally as a microservice. 
+This copy will be targetable through the DID protocol, allowing for DWNs to 
+communicate directly with each other. It does not prevent the app from using
+other services, such as AWS to target a service that will make suggestions
+based on content.
+
+Each app will have full uncrypted access to the data it generates.
+
+> [!NOTE]
+> Such a system will greatly reduce the operational complexity of the whole
+> network, especially regarding bandwidth and storage operations.
+>
+> It also brings unconsiderable benefits for offline-first use cases.
+
+The app manifest (`manifest.json`) is the core component of every app under
+this system, it gives entrypoints of the app, paths, names, ... to use. 
+
+Here is an example of a manifest for a social network app:
+
+```json
+{
+    "name": "twouiteur",
+    "version": "2.1.1",
+    "source": "did://twouiteur@app/",
+    "services": [
+        {
+            "route": "/profile/:id",
+            "handler": "src/routes/get_profile.go"
+        },
+        {
+            "route": "/post/:id",
+            "handler": "src/routes/get_post.rs"
+        }
+    ],
+    "storage": [
+        {
+            "mode": "kv",
+            "database_name": "posts_metadata"
+        },
+        {
+            "mode": "kv",
+            "database_name": "users"
+        },
+        {
+            "mode": "raw",
+            "database_name": "posts"
+        },
+        {
+            "mode": "raw",
+            "database_name": "pictures",
+            "owned_by": "@gallery_app",
+            "permission": "read"
+        }
+    ]
+}
+```
+
+Each route will be made public under a namespace, as it may have been guessed
+the namespace is `@[app_name]` for both storage and routing.
+
+### Runtimes
+
+Three runtimes are supported out-of-the-box for DWNs. `JavaScript/TypeScript`
+for convenience, `Rust` and `Go` for performance and really-low cold start
+impact.
+
+Runtimes are automatically determined based on file extensions and the DWN
+automatically build routes on installing to improve efficiency. 
 
 # How to use
 
